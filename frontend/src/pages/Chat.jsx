@@ -10,14 +10,14 @@ const Chat = () => {
   const { socket, connected } = useSocket();
   const { user } = useAuth();
   const navigate = useNavigate();
-  
+
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [otherUser, setOtherUser] = useState(null);
   const [typing, setTyping] = useState(false);
-  
+
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
 
@@ -38,12 +38,15 @@ const Chat = () => {
         const messagesResponse = await api.get(`/messages/${conversationId}`);
         setMessages(messagesResponse.data);
 
+        // Mark messages as read
+        await api.put(`/messages/${conversationId}/read`);
+
         // Fetch conversations to get other user info
         const conversationsResponse = await api.get('/conversations');
         const conversation = conversationsResponse.data.find(
           conv => conv.id === conversationId
         );
-        
+
         if (conversation) {
           setOtherUser(conversation.otherUser);
         }
@@ -69,6 +72,10 @@ const Chat = () => {
     // Listen for new messages
     const handleNewMessage = (message) => {
       setMessages(prev => [...prev, message]);
+      // If we are looking at this chat, mark incoming as read immediately (optional optimization)
+      if (message.conversationId === conversationId && message.sender._id !== user.id) {
+        api.put(`/messages/${conversationId}/read`).catch(console.error);
+      }
     };
 
     // Listen for typing indicators
@@ -103,7 +110,7 @@ const Chat = () => {
         clearTimeout(typingTimeoutRef.current);
       }
     };
-  }, [socket, connected, conversationId]);
+  }, [socket, connected, conversationId, user.id]);
 
   const handleTyping = () => {
     if (socket && connected) {
@@ -119,7 +126,7 @@ const Chat = () => {
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    
+
     if (!newMessage.trim() || sending) return;
 
     setSending(true);
@@ -147,16 +154,16 @@ const Chat = () => {
     const date = new Date(timestamp);
     const now = new Date();
     const isToday = date.toDateString() === now.toDateString();
-    
+
     if (isToday) {
-      return date.toLocaleTimeString('en-US', { 
-        hour: 'numeric', 
+      return date.toLocaleTimeString('en-US', {
+        hour: 'numeric',
         minute: '2-digit',
-        hour12: true 
+        hour12: true
       });
     } else {
-      return date.toLocaleDateString('en-US', { 
-        month: 'short', 
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
         day: 'numeric',
         hour: 'numeric',
         minute: '2-digit',
@@ -169,44 +176,44 @@ const Chat = () => {
     return (
       <div>
         <Navbar />
-        <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
-          <div className="text-xl text-gray-600">Loading conversation...</div>
+        <div className="flex items-center justify-center h-[calc(100vh-4rem)] bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-white">
+          <div className="text-xl">Loading conversation...</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
       <Navbar />
-      
+
       {/* Chat Header */}
-      <div className="bg-white border-b px-6 py-4 flex items-center">
+      <div className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 px-6 py-4 flex items-center shadow-sm z-10">
         <button
           onClick={() => navigate('/')}
-          className="mr-4 text-gray-600 hover:text-gray-800"
+          className="mr-4 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white transition-colors"
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-lg font-bold">
-          {otherUser?.username.charAt(0).toUpperCase()}
+        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-lg font-bold border-2 border-white dark:border-gray-600">
+          {otherUser?.profileEmoji || otherUser?.username.charAt(0).toUpperCase()}
         </div>
         <div className="ml-4">
-          <h2 className="text-lg font-semibold text-gray-800">{otherUser?.username}</h2>
-          <p className="text-sm text-gray-500">{connected ? '🟢 Online' : '🔴 Offline'}</p>
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-white">{otherUser?.username}</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{connected ? '🟢 Online' : '🔴 Offline'}</p>
         </div>
       </div>
 
       {/* Messages Container */}
-      <div className="flex-1 overflow-y-auto bg-gray-50 px-6 py-4">
+      <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 px-6 py-4 scroll-smooth">
         {messages.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
               <div className="text-6xl mb-4">💬</div>
-              <p className="text-gray-600 text-lg">No messages yet</p>
-              <p className="text-gray-500 text-sm">Send a message to start the conversation</p>
+              <p className="text-gray-600 dark:text-gray-400 text-lg">No messages yet</p>
+              <p className="text-gray-500 dark:text-gray-500 text-sm">Send a message to start the conversation</p>
             </div>
           </div>
         ) : (
@@ -220,15 +227,14 @@ const Chat = () => {
                 >
                   <div className={`max-w-xs md:max-w-md lg:max-w-lg ${isOwnMessage ? 'order-2' : 'order-1'}`}>
                     <div
-                      className={`rounded-lg px-4 py-2 ${
-                        isOwnMessage
+                      className={`rounded-lg px-4 py-2 shadow-sm ${isOwnMessage
                           ? 'bg-blue-600 text-white'
-                          : 'bg-white text-gray-800 border border-gray-200'
-                      }`}
+                          : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-700'
+                        }`}
                     >
                       <p className="break-words">{message.text}</p>
                     </div>
-                    <p className={`text-xs text-gray-500 mt-1 ${isOwnMessage ? 'text-right' : 'text-left'}`}>
+                    <p className={`text-xs text-gray-500 dark:text-gray-400 mt-1 ${isOwnMessage ? 'text-right' : 'text-left'}`}>
                       {formatTime(message.createdAt)}
                     </p>
                   </div>
@@ -241,11 +247,11 @@ const Chat = () => {
 
         {/* Typing Indicator */}
         {typing && (
-          <div className="flex items-center space-x-2 text-gray-500 text-sm mt-2">
+          <div className="flex items-center space-x-2 text-gray-500 dark:text-gray-400 text-sm mt-2">
             <div className="flex space-x-1">
-              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              <div className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce"></div>
+              <div className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+              <div className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
             </div>
             <span>{otherUser?.username} is typing...</span>
           </div>
@@ -253,7 +259,7 @@ const Chat = () => {
       </div>
 
       {/* Message Input */}
-      <div className="bg-white border-t px-6 py-4">
+      <div className="bg-white dark:bg-gray-800 border-t dark:border-gray-700 px-6 py-4 z-10 relative">
         <form onSubmit={handleSendMessage} className="flex items-center space-x-4">
           <input
             type="text"
@@ -264,13 +270,13 @@ const Chat = () => {
             }}
             onBlur={handleStopTyping}
             placeholder="Type a message..."
-            className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors"
             disabled={!connected}
           />
           <button
             type="submit"
             disabled={!newMessage.trim() || sending || !connected}
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-semibold disabled:bg-gray-300 disabled:cursor-not-allowed"
+            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-semibold disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
           >
             {sending ? 'Sending...' : 'Send'}
           </button>

@@ -9,29 +9,29 @@ const router = express.Router();
 router.get('/', auth, async (req, res) => {
   try {
     const currentUserId = req.userId;
-    
+
     // Get current user with friends
     const currentUser = await User.findById(currentUserId);
-    
+
     // Get all users except current user
     const users = await User.find({ _id: { $ne: currentUserId } }).select('-passwordHash');
-    
+
     // Get all friend requests involving current user
-    const sentRequests = await FriendRequest.find({ 
-      from: currentUserId, 
-      status: 'pending' 
+    const sentRequests = await FriendRequest.find({
+      from: currentUserId,
+      status: 'pending'
     });
-    
-    const receivedRequests = await FriendRequest.find({ 
-      to: currentUserId, 
-      status: 'pending' 
+
+    const receivedRequests = await FriendRequest.find({
+      to: currentUserId,
+      status: 'pending'
     });
-    
+
     // Map users with their status
     const usersWithStatus = users.map(user => {
       let status = 'not_friends';
       let requestId = null;
-      
+
       // Check if friends
       if (currentUser.friends.some(friendId => friendId.toString() === user._id.toString())) {
         status = 'friends';
@@ -51,17 +51,39 @@ router.get('/', auth, async (req, res) => {
           }
         }
       }
-      
+
       return {
         id: user._id,
         username: user.username,
         email: user.email,
+        profileEmoji: user.profileEmoji,
         status,
         requestId
       };
     });
-    
+
     res.json(usersWithStatus);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update Profile
+router.put('/profile', auth, async (req, res) => {
+  try {
+    const { profileEmoji } = req.body;
+
+    if (!profileEmoji) {
+      return res.status(400).json({ error: 'Profile emoji is required' });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.userId,
+      { profileEmoji },
+      { new: true }
+    ).select('-passwordHash');
+
+    res.json(user);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

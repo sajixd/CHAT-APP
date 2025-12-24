@@ -199,13 +199,13 @@ const Home = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
       <Navbar />
 
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-800 mb-2">👥 Users</h2>
-          <p className="text-gray-600">Send friend requests to start chatting</p>
+          <h2 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">👥 Users</h2>
+          <p className="text-gray-600 dark:text-gray-300">Send friend requests to start chatting</p>
         </div>
 
         {error && (
@@ -221,20 +221,20 @@ const Home = () => {
         )}
 
         {users.length === 0 ? (
-          <div className="bg-white rounded-lg shadow p-8 text-center">
-            <p className="text-gray-600 text-lg">No other users found. Invite your friends to join!</p>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-8 text-center">
+            <p className="text-gray-600 dark:text-gray-300 text-lg">No other users found. Invite your friends to join!</p>
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {users.map((user) => (
-              <div key={user.id} className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+              <div key={user.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
                 <div className="flex items-center mb-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xl font-bold">
-                    {user.username.charAt(0).toUpperCase()}
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xl font-bold border-2 border-white dark:border-gray-700">
+                    {user.profileEmoji || user.username.charAt(0).toUpperCase()}
                   </div>
                   <div className="ml-4 flex-1">
-                    <h3 className="text-lg font-semibold text-gray-800">{user.username}</h3>
-                    <p className="text-sm text-gray-500">{user.email}</p>
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-white">{user.username}</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{user.email}</p>
                   </div>
                 </div>
 

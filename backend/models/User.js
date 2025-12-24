@@ -19,6 +19,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  profileEmoji: {
+    type: String,
+    default: "👤"
+  },
   friends: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
