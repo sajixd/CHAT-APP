@@ -1,0 +1,16 @@
+name: Auto Deploy to VM
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Pull and restart
+        run: |
+          cd ~/CHAT-APP
+          git pull origin main
+          npm install --production
+          pkill -f "node" || true
+          nohup npm start > app.log 2>&1 &
